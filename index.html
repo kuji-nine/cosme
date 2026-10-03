@@ -465,7 +465,7 @@
         <div style="font-size: 11px; color: #38bdf8; margin-top: 2px;" id="odoAU">0.00 AU</div>
       </div>
 
-      <div style="font-size: 10px; color: #64748b; font-family: monospace; text-align: right;">
+      <div style="font-size: 10px; color: #64748b; font-family: monospace; text-align: right;" id="hudLocationZone">
         SOLAR SYSTEM PROFILE
       </div>
     </div>
@@ -500,7 +500,7 @@
 
       <div class="result-title">
         <span>★ COSMIC FLIGHT LOG REPORT</span>
-        <span class="sub">DEEP SPACE PROFILE</span>
+        <span class="sub" id="resLocationSub">DEEP SPACE PROFILE</span>
       </div>
 
       <div class="stats-grid">
@@ -551,7 +551,7 @@
         </div>
       </div>
 
-      <div class="poetic-message">
+      <div class="poetic-message" id="resPoeticMessage">
         水・金・地・火・木・土・天・海・冥……太陽系のすべての惑星を飛び越え、<br>
         あなたはいま、太陽系外縁の「オールトの雲」の内側を疾走しています。<br>
         次の誕生日までに、さらに <strong>約 81 億 km</strong> の未知なる宇宙空間を進みます。
@@ -679,21 +679,57 @@
       });
     }
 
-    // Solar system planets definition
+    // Solar system planets definition scaled up to 100+ years (~10,000 AU)
     const planets = [
-      { name: '太陽', en: 'SUN', xNorm: 0.05, color: '#f59e0b', r: 10, passed: false },
-      { name: '水', en: 'MERCURY', xNorm: 0.10, color: '#94a3b8', r: 3, passed: false },
-      { name: '金', en: 'VENUS', xNorm: 0.13, color: '#fde047', r: 4, passed: false },
-      { name: '地球', en: 'EARTH', xNorm: 0.17, color: '#38bdf8', r: 5, passed: false, isStart: true },
-      { name: '火', en: 'MARS', xNorm: 0.21, color: '#ef4444', r: 4, passed: false },
-      { name: '木', en: 'JUPITER', xNorm: 0.28, color: '#fb923c', r: 8, passed: false },
-      { name: '土', en: 'SATURN', xNorm: 0.36, color: '#fef08a', r: 6.5, ring: true, passed: false },
-      { name: '天', en: 'URANUS', xNorm: 0.44, color: '#67e8f9', r: 4.5, passed: false },
-      { name: '海', en: 'NEPTUNE', xNorm: 0.51, color: '#3b82f6', r: 4.5, passed: false },
-      { name: '冥', en: 'PLUTO', xNorm: 0.57, color: '#cbd5e1', r: 2.5, passed: false },
-      { name: 'ボイジャー境界', en: '120 AU', xNorm: 0.67, color: '#a855f7', isMarker: true, passed: false },
-      { name: 'オールトの雲', en: '4,000 AU', xNorm: 0.90, color: '#38bdf8', isOort: true, passed: false }
+      { name: '太陽', en: 'SUN', au: 0.0, xNorm: 0.04, color: '#f59e0b', r: 9, passed: false },
+      { name: '水', en: 'MERCURY', au: 0.39, xNorm: 0.08, color: '#94a3b8', r: 3, passed: false },
+      { name: '金', en: 'VENUS', au: 0.72, xNorm: 0.11, color: '#fde047', r: 3.5, passed: false },
+      { name: '地球', en: 'EARTH', au: 1.0, xNorm: 0.14, color: '#38bdf8', r: 4.5, passed: false, isStart: true },
+      { name: '火', en: 'MARS', au: 1.52, xNorm: 0.18, color: '#ef4444', r: 3.5, passed: false },
+      { name: '木', en: 'JUPITER', au: 5.20, xNorm: 0.24, color: '#fb923c', r: 7.5, passed: false },
+      { name: '土', en: 'SATURN', au: 9.58, xNorm: 0.31, color: '#fef08a', r: 6, ring: true, passed: false },
+      { name: '天', en: 'URANUS', au: 19.2, xNorm: 0.38, color: '#67e8f9', r: 4.5, passed: false },
+      { name: '海', en: 'NEPTUNE', au: 30.0, xNorm: 0.44, color: '#3b82f6', r: 4.5, passed: false },
+      { name: '冥', en: 'PLUTO', au: 39.5, xNorm: 0.50, color: '#cbd5e1', r: 2.5, passed: false },
+      { name: 'ボイジャー境界', en: '120 AU', au: 120.0, xNorm: 0.58, color: '#a855f7', isMarker: true, passed: false },
+      { name: 'オールト内縁 (50歳)', en: '4,000 AU', au: 4000.0, xNorm: 0.72, color: '#38bdf8', isOort: true, passed: false },
+      { name: 'ヒルズ雲 (100歳)', en: '8,000 AU', au: 8000.0, xNorm: 0.86, color: '#818cf8', isHills: true, passed: false }
     ];
+
+    // Piecewise logarithmic interpolation supporting 0 to 120+ years (~10,000+ AU)
+    function getXNormFromAU(targetAU) {
+      if (targetAU <= 1.0) return 0.14; // Earth start
+      const points = [
+        { au: 1.0, x: 0.14 },
+        { au: 1.52, x: 0.18 },
+        { au: 5.20, x: 0.24 },
+        { au: 9.58, x: 0.31 },
+        { au: 19.2, x: 0.38 },
+        { au: 30.0, x: 0.44 },
+        { au: 39.5, x: 0.50 },
+        { au: 120.0, x: 0.58 },
+        { au: 4000.0, x: 0.72 },
+        { au: 8000.0, x: 0.86 },
+        { au: 12000.0, x: 0.94 }
+      ];
+
+      if (targetAU >= 12000.0) {
+        return 0.95;
+      }
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        if (targetAU >= p1.au && targetAU <= p2.au) {
+          const logMin = Math.log(p1.au);
+          const logMax = Math.log(p2.au);
+          const logCur = Math.log(targetAU);
+          const t = (logCur - logMin) / (logMax - logMin);
+          return p1.x + (p2.x - p1.x) * t;
+        }
+      }
+      return 0.86;
+    }
 
     let state = 'IDLE';
     let stateTimer = 0;
@@ -702,6 +738,7 @@
     let beamProgress = 0;
     let cosmicKm = 0;
     let targetCosmicKm = 0;
+    let targetXNorm = 0.72;
     let isGhostMode = false;
 
     let calcResults = {};
@@ -710,9 +747,10 @@
       const birth = new Date(birthStr);
       const today = new Date('2026-10-03T12:00:00');
       const diffTime = today - birth;
-      const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const days = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
       const hours = days * 24;
       const seconds = days * 86400;
+      const ageYears = days / 365.2425;
 
       let nextYear = today.getFullYear();
       let nextBday = new Date(nextYear, birth.getMonth(), birth.getDate());
@@ -724,18 +762,100 @@
       const totalKm = seconds * 370;
       const au = totalKm / 149597870.7;
       const ly = totalKm / 9.4607304725808e12;
+      
+      // Dynamic Heartbeats Formatting
       const totalBeats = seconds * (70 / 60);
-      const beatsIn100M = (totalBeats / 100000000).toFixed(1);
+      let beatsStr = '';
+      if (totalBeats >= 100000000) {
+        beatsStr = `約 ${(totalBeats / 100000000).toFixed(1)} 億回`;
+      } else if (totalBeats >= 10000) {
+        beatsStr = `約 ${Math.round(totalBeats / 10000).toLocaleString()} 万回`;
+      } else {
+        beatsStr = `約 ${Math.round(totalBeats).toLocaleString()} 回`;
+      }
+
+      // Next birthday distance gain
+      const nextKm = daysToNext * 86400 * 370;
+      let nextKmStr = '';
+      if (nextKm >= 100000000) {
+        nextKmStr = `約 ${(nextKm / 100000000).toFixed(0)} 億 km`;
+      } else {
+        nextKmStr = `約 ${Math.round(nextKm / 10000).toLocaleString()} 万 km`;
+      }
+
+      // Formatted total km string (shows 兆 for 100+ years)
+      let distStr = '';
+      if (totalKm >= 1000000000000) {
+        distStr = `${(totalKm / 1000000000000).toFixed(3)} 兆 km (${Math.round(totalKm).toLocaleString()} km)`;
+      } else {
+        distStr = `${Math.round(totalKm).toLocaleString()} km`;
+      }
+
+      // Determine current location zone and poetic message
+      let zoneName = '';
+      let zoneEn = '';
+      let poetic = '';
+
+      if (au < 0.05) {
+        zoneName = '地球近傍・月軌道';
+        zoneEn = 'EARTH-MOON REALM';
+        poetic = `地球から飛び立ち、月を越えて深宇宙へ。<br>命の鼓動とともに、あなたの宇宙航海は始まったばかりです。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の未知なる宇宙空間を進みます。`;
+      } else if (au < 1.52) {
+        zoneName = '太陽系内惑星・火星へ向かう領域';
+        zoneEn = 'INNER SOLAR SYSTEM';
+        poetic = `地球を飛び出し、赤い惑星・火星へ向けて加速中。<br>太陽の暖かな光を受けながら、あなたの宇宙船は星間を目指しています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 5.20) {
+        zoneName = '火星軌道突破・小惑星帯（アステロイドベルト）';
+        zoneEn = 'ASTEROID BELT';
+        poetic = `火星を追い越し、無数の小惑星が漂うアステロイドベルトを突破中。<br>巨大ガス惑星・木星の重力圏がすぐ目の前に迫っています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 9.58) {
+        zoneName = '巨大ガス惑星・木星領域';
+        zoneEn = 'JUPITER REALM';
+        poetic = `太陽系最大の巨人・木星の領域を悠々と航行中。<br>強力な重力嵐を背に受け、美しい環を持つ土星へとひた走っています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 19.2) {
+        zoneName = '美しき環の惑星・土星領域';
+        zoneEn = 'SATURN REALM';
+        poetic = `木星を越え、氷の環を輝かせる土星の領域を通過中。<br>太陽の光はすでに遠く、静寂なる外太陽系への扉を開け放ちました。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 30.0) {
+        zoneName = '氷の巨大惑星・天王星領域';
+        zoneEn = 'URANUS REALM';
+        poetic = `青緑色に静かに眠る天王星の極寒の領域を航行中。<br>太陽系という我が家の玄関口を抜け、星々の深淵が広がっています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 39.5) {
+        zoneName = '太陽系最遠の惑星・海王星領域';
+        zoneEn = 'NEPTUNE REALM';
+        poetic = `コバルトブルーの海王星を越え、太陽系最遠のフロンティアへ。<br>かつて冥王星が守っていた太陽系の境界線をいま、あなたは切り裂いています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 120.0) {
+        zoneName = 'エッジワース・カイパーベルト（冥王星の彼方）';
+        zoneEn = 'KUIPER BELT';
+        poetic = `冥王星の軌道を完全に置き去りにし、無数の氷天体が眠るカイパーベルトへ。<br>NASAの探査機ニューホライズンズと同じ未踏の闇を駆け抜けています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 2000.0) {
+        zoneName = '太陽風の限界境界（ヘリオポーズ突破・星間空間）';
+        zoneEn = 'INTERSTELLAR SPACE';
+        poetic = `太陽風のバリア（ヘリオポーズ）を突破！ボイジャー1号すら追い抜く領域へ。<br>太陽の磁気圏を完全に脱出し、完全なる「星間宇宙」を疾走しています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の宇宙を進みます。`;
+      } else if (au < 6000.0) {
+        zoneName = '太陽系外縁・オールトの雲（深宇宙の深淵）';
+        zoneEn = 'OORT CLOUD INNER';
+        poetic = `水・金・地・火・木・土・天・海・冥……太陽系のすべての惑星を飛び越え、<br>あなたはいま、太陽系外縁の「オールトの雲」の内側を疾走しています。<br>次の誕生日までに、さらに <strong>${nextKmStr}</strong> の未知なる宇宙空間を進みます。`;
+      } else {
+        zoneName = 'オールトの雲中枢・ヒルズ雲（100年のフロンティア）';
+        zoneEn = 'HILLS CLOUD (CENTURY FRONTIER)';
+        poetic = `100年を超える生命の大航海！走行距離はついに <strong>1兆キロ</strong> を突破。<br>太陽の光は夜空の星へと遠のき、彗星たちの深き故郷「ヒルズ雲」を航行しています。<br>次の星系（4.2光年）へ向け、あなたの旅路は宇宙の深淵を照らし続けています。`;
+      }
 
       return {
         days,
         hours,
         totalKm,
+        distStr,
         au,
         ly,
-        beats: beatsIn100M,
+        beats: beatsStr,
         daysToNext,
-        birthStr
+        birthStr,
+        zoneName,
+        zoneEn,
+        poetic,
+        ageYears
       };
     }
 
@@ -751,6 +871,7 @@
     const odometerBox = document.getElementById('odometerBox');
     const odoNumber = document.getElementById('odoNumber');
     const odoAU = document.getElementById('odoAU');
+    const hudLocationZone = document.getElementById('hudLocationZone');
     const canvasContainer = document.getElementById('canvas-container');
 
     function setNarration(main, sub) {
@@ -774,6 +895,7 @@
       const birthVal = document.getElementById('birthDateInput').value;
       calcResults = computeCosmicData(birthVal);
       targetCosmicKm = calcResults.totalKm;
+      targetXNorm = getXNormFromAU(calcResults.au);
 
       setupCard.classList.add('hidden');
       startSequence();
@@ -791,7 +913,7 @@
 
     copyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const text = `【CosMe - 宇宙の中の自分】\n生年月日: ${calcResults.birthStr}\nあなたが地球に降り立ってから（生存日数）: ${calcResults.days.toLocaleString()} 日\nあなたの時間: ${calcResults.hours.toLocaleString()} 時間\n宇宙総航行距離: ${Math.round(calcResults.totalKm).toLocaleString()} km (${calcResults.au.toFixed(1)} AU / ${calcResults.ly.toFixed(4)} 光年)\n心臓の鼓動: 約 ${calcResults.beats} 億回\n次の誕生日まで: あと ${calcResults.daysToNext} 日\n#CosMe #宇宙の中の自分`;
+      const text = `【CosMe - 宇宙の中の自分】\n生年月日: ${calcResults.birthStr}\n現在地: ${calcResults.zoneName} (${calcResults.au.toFixed(1)} AU)\nあなたが地球に降り立ってから（生存日数）: ${calcResults.days.toLocaleString()} 日\nあなたの時間: ${calcResults.hours.toLocaleString()} 時間\n宇宙総航行距離: ${calcResults.distStr} (${calcResults.ly.toFixed(4)} 光年)\n心臓の鼓動: ${calcResults.beats}\n次の誕生日まで: あと ${calcResults.daysToNext} 日\n#CosMe #宇宙の中の自分`;
       navigator.clipboard.writeText(text).then(() => {
         copyBtn.innerText = 'コピー完了！';
         setTimeout(() => copyBtn.innerText = '結果をコピー', 2000);
@@ -906,11 +1028,11 @@
           beamProgress = 0;
           odometerBox.classList.add('visible');
           sound.playWarp();
-          setNarration('地球から光が伸びていく──', '未知なる深宇宙へ');
+          setNarration('地球から光が伸びていく──', '未知なる宇宙の旅程へ');
         }
       }
       else if (state === 'BEAM_VOYAGE') {
-        beamProgress = Math.min(1.0, stateTimer / 6.0);
+        beamProgress = Math.min(1.0, stateTimer / 5.5);
         const pCurve = Math.pow(beamProgress, 2.0);
         cosmicKm = targetCosmicKm * pCurve;
         const currentAU = cosmicKm / 149597870.7;
@@ -921,12 +1043,12 @@
         drawSolarSystem(1.0, beamProgress);
 
         if (beamProgress > 0.45 && beamProgress < 0.50) {
-          setNarration('海王星・冥王星を突破', '太陽系の外へ──');
-        } else if (beamProgress > 0.80 && beamProgress < 0.85) {
-          setNarration('オールトの雲へ到達', '4,004 AU ── 星間空間の深淵');
+          setNarration(`${calcResults.zoneName}へ接近`, `${calcResults.au.toFixed(1)} AU ── 航路を突き進む`);
+        } else if (beamProgress > 0.85 && beamProgress < 0.90) {
+          setNarration('航行目標地点へ到達', `${calcResults.zoneName}`);
         }
 
-        if (stateTimer > 6.8) {
+        if (stateTimer > 6.0) {
           state = 'RESULT';
           stateTimer = 0;
           sound.playArrival();
@@ -1053,22 +1175,38 @@
       const earthNorm = planets.find(p => p.isStart).xNorm;
       const earthX = startX + totalWidth * earthNorm;
 
-      const oortNorm = planets.find(p => p.isOort).xNorm;
-      const oortX = startX + totalWidth * oortNorm;
+      const destinationX = startX + totalWidth * targetXNorm;
+      const beamCurrentX = earthX + (destinationX - earthX) * beamProg;
 
-      const beamCurrentX = earthX + (oortX - earthX) * beamProg;
-
-      // 1. Oort Cloud fuzzy cloud area
-      const oortGrad = ctx.createRadialGradient(oortX, trackY, 8, oortX, trackY, Math.min(width * 0.15, 60));
-      oortGrad.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
-      oortGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.08)');
+      // 1. Oort Cloud fuzzy cloud area (0.72)
+      const oortX = startX + totalWidth * 0.72;
+      const oortGrad = ctx.createRadialGradient(oortX, trackY, 6, oortX, trackY, Math.min(width * 0.10, 45));
+      oortGrad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+      oortGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.06)');
       oortGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = oortGrad;
       ctx.beginPath();
-      ctx.arc(oortX, trackY, Math.min(width * 0.15, 60), 0, Math.PI * 2);
+      ctx.arc(oortX, trackY, Math.min(width * 0.10, 45), 0, Math.PI * 2);
       ctx.fill();
 
-      // 2. Light Beam
+      // 2. Hills Cloud (100 years frontier) fuzzy cloud area (0.86)
+      const hillsX = startX + totalWidth * 0.86;
+      const hillsGrad = ctx.createRadialGradient(hillsX, trackY, 6, hillsX, trackY, Math.min(width * 0.10, 45));
+      hillsGrad.addColorStop(0, 'rgba(129, 140, 248, 0.3)');
+      hillsGrad.addColorStop(0.6, 'rgba(129, 140, 248, 0.08)');
+      hillsGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = hillsGrad;
+      ctx.beginPath();
+      ctx.arc(hillsX, trackY, Math.min(width * 0.10, 45), 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Right edge guide: Next Star System (Proxima Centauri 4.2 ly)
+      ctx.font = '9px monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.textAlign = 'right';
+      ctx.fillText('➡ NEXT STAR (4.2 ly)', endX, trackY - 14);
+
+      // 4. Light Beam
       if (beamProg > 0) {
         ctx.beginPath();
         ctx.moveTo(earthX, trackY);
@@ -1080,6 +1218,7 @@
         ctx.stroke();
         ctx.shadowBlur = 0;
 
+        // Beam Head
         ctx.beginPath();
         ctx.arc(beamCurrentX, trackY, 5 + Math.sin(Date.now() * 0.02) * 2, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
@@ -1089,14 +1228,47 @@
         ctx.shadowBlur = 0;
       }
 
-      // 3. Planets & Markers
+      // 5. Dynamic "YOU ARE HERE" Pin at EXACT destination
+      if (beamProg >= 1.0) {
+        const pulse = Math.sin(Date.now() * 0.006) * 3;
+        ctx.beginPath();
+        ctx.arc(destinationX, trackY, 9 + pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.arc(destinationX, trackY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(destinationX, trackY + 12);
+        ctx.lineTo(destinationX, trackY + 22);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('★ YOU ARE HERE (現在地)', destinationX, trackY + 34);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '10px monospace';
+        ctx.fillText(`${calcResults.au.toFixed(1)} AU`, destinationX, trackY + 46);
+      }
+
+      // 6. Planets & Markers
       planets.forEach((p, idx) => {
         const px = startX + totalWidth * p.xNorm;
 
         const isPassed = beamProg > 0 && beamCurrentX >= px;
         if (isPassed && !p.passed) {
           p.passed = true;
-          sound.playPlanetPass(0.8 + idx * 0.08);
+          sound.playPlanetPass(0.8 + idx * 0.07);
         }
 
         if (p.isMarker) {
@@ -1113,28 +1285,16 @@
           ctx.fillStyle = isPassed ? '#c084fc' : 'rgba(168, 85, 247, 0.6)';
           ctx.textAlign = 'center';
           ctx.fillText('120 AU', px, trackY - 30);
-          ctx.fillText('太陽風境界', px, trackY + 36);
+          ctx.fillText('太陽風境界', px, trackY + (beamProg >= 1.0 && Math.abs(px - destinationX) < 35 ? 58 : 36));
           return;
         }
 
-        if (p.isOort) {
+        if (p.isOort || p.isHills) {
           ctx.font = '9px monospace';
-          ctx.fillStyle = isPassed ? '#38bdf8' : 'rgba(56, 189, 248, 0.5)';
+          ctx.fillStyle = isPassed ? p.color : 'rgba(255, 255, 255, 0.4)';
           ctx.textAlign = 'center';
-          ctx.fillText('4,000 AU', px, trackY - 24);
-          ctx.fillText('オールトの雲', px, trackY - 12);
-
-          if (isPassed) {
-            ctx.beginPath();
-            ctx.arc(px, trackY, 7 + Math.sin(Date.now() * 0.005) * 3, 0, Math.PI * 2);
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.fillStyle = '#f59e0b';
-            ctx.font = 'bold 11px monospace';
-            ctx.fillText('★ YOU ARE HERE', px, trackY + 26);
-          }
+          ctx.fillText(p.en, px, trackY - 24);
+          ctx.fillText(p.name, px, trackY - 12);
           return;
         }
 
@@ -1168,10 +1328,13 @@
     function showResult() {
       document.getElementById('resDays').innerText = calcResults.days.toLocaleString() + ' 日';
       document.getElementById('resHours').innerText = calcResults.hours.toLocaleString() + ' 時間';
-      document.getElementById('resDist').innerText = Math.round(calcResults.totalKm).toLocaleString() + ' km';
+      document.getElementById('resDist').innerText = calcResults.distStr;
       document.getElementById('resAU').innerText = `${calcResults.au.toFixed(1)} AU (${calcResults.ly.toFixed(4)} 光年)`;
-      document.getElementById('resBeats').innerText = `約 ${calcResults.beats} 億回`;
+      document.getElementById('resBeats').innerText = calcResults.beats;
       document.getElementById('resNextDays').innerText = `あと ${calcResults.daysToNext} 日`;
+      document.getElementById('resLocationSub').innerText = calcResults.zoneEn;
+      document.getElementById('resPoeticMessage').innerHTML = calcResults.poetic;
+      hudLocationZone.innerText = calcResults.zoneEn;
 
       resultCard.classList.add('visible');
     }
