@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>COSMIC ODOMETER - あなたが宇宙を旅した距離</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>CosMe - 宇宙の中の自分 (COSMIC ODOMETER)</title>
   <style>
     * {
       margin: 0;
@@ -12,17 +12,15 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
       background-color: #04060d;
       color: #e2e8f0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      position: relative;
     }
     #canvas-container {
       position: absolute;
@@ -41,14 +39,17 @@
     /* UI Overlay */
     .ui-layer {
       position: absolute;
+      top: 0;
+      left: 0;
       z-index: 10;
       pointer-events: none;
       width: 100%;
       height: 100%;
+      height: 100dvh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px 28px;
+      padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
     }
     .hud-header {
       display: flex;
@@ -61,55 +62,83 @@
     .hud-header .title {
       color: #f59e0b;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 15px;
       letter-spacing: 3px;
     }
+    .hud-header .sub-brand {
+      font-size: 9px;
+      color: #38bdf8;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    /* Robust Centering for Safari & all mobile browsers */
     .center-overlay {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       z-index: 20;
-      width: 92%;
-      max-width: 660px;
+      padding: 16px;
       pointer-events: none;
     }
+
     /* Input Panel */
     .setup-card {
-      background: rgba(10, 14, 26, 0.9);
+      background: rgba(10, 14, 26, 0.92);
       border: 1px solid rgba(245, 158, 11, 0.4);
       border-radius: 16px;
-      padding: 34px 26px;
-      backdrop-filter: blur(14px);
+      padding: 30px 24px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(245, 158, 11, 0.12);
-      transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: auto;
+      width: 100%;
+      max-width: 540px;
+      text-align: center;
+      margin: auto;
     }
     .setup-card.hidden {
       opacity: 0;
       transform: scale(0.9) translateY(20px);
       pointer-events: none;
+      display: none;
     }
     .setup-title {
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      margin-bottom: 6px;
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 3px;
+      margin-bottom: 4px;
       color: #ffffff;
     }
+    .setup-title span {
+      color: #f59e0b;
+    }
+    .setup-concept {
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      font-family: monospace;
+      margin-bottom: 12px;
+    }
     .setup-subtitle {
-      font-size: 14px;
+      font-size: 13px;
       color: #94a3b8;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
       line-height: 1.6;
     }
     .input-row {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 18px;
+      gap: 10px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
     }
     .date-input {
@@ -117,7 +146,7 @@
       border: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 8px;
       color: #fff;
-      font-size: 17px;
+      font-size: 16px;
       padding: 10px 14px;
       outline: none;
       font-family: monospace;
@@ -135,7 +164,7 @@
       font-size: 15px;
       font-weight: bold;
       letter-spacing: 1px;
-      padding: 12px 28px;
+      padding: 11px 26px;
       cursor: pointer;
       transition: all 0.2s ease;
       box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
@@ -144,33 +173,37 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 25px rgba(245, 158, 11, 0.6);
     }
+
     /* Narration Text */
     .narration {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 300;
-      letter-spacing: 3px;
+      letter-spacing: 2.5px;
       color: #f8fafc;
       text-shadow: 0 0 25px rgba(0,0,0,0.9), 0 0 12px rgba(245, 158, 11, 0.6);
       opacity: 0;
       transition: opacity 0.8s ease, transform 0.8s ease;
       transform: translateY(10px);
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      text-align: center;
     }
     .narration.visible {
       opacity: 1;
       transform: translateY(0);
     }
     .sub-narration {
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: 2px;
       color: #f59e0b;
       opacity: 0;
       transition: opacity 0.8s ease 0.2s;
       font-family: monospace;
+      text-align: center;
     }
     .sub-narration.visible {
       opacity: 1;
     }
+
     /* Telemetry HUD Bottom */
     .telemetry-bottom {
       display: flex;
@@ -182,9 +215,10 @@
     .odometer-box {
       background: rgba(10, 14, 26, 0.85);
       border-left: 3px solid #f59e0b;
-      padding: 10px 18px;
+      padding: 8px 16px;
       border-radius: 0 8px 8px 0;
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       opacity: 0;
       transition: opacity 0.6s ease;
       pointer-events: auto;
@@ -196,76 +230,72 @@
       font-size: 9px;
       letter-spacing: 1.5px;
       color: #94a3b8;
-      margin-bottom: 3px;
+      margin-bottom: 2px;
     }
     .odo-value {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: bold;
       color: #ffffff;
       letter-spacing: 1px;
     }
     .odo-unit {
-      font-size: 12px;
+      font-size: 11px;
       color: #f59e0b;
-      margin-left: 5px;
+      margin-left: 4px;
     }
 
     /* Final Result Modal */
     .result-card {
-      background: rgba(9, 13, 24, 0.92);
+      background: rgba(9, 13, 24, 0.94);
       border: 1px solid rgba(245, 158, 11, 0.45);
       border-radius: 16px;
-      padding: 28px 24px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(245, 158, 11, 0.15);
+      padding: 24px 20px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 45px rgba(245, 158, 11, 0.15);
       opacity: 0;
       transform: scale(0.9) translateY(20px);
       pointer-events: none;
       transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
+      width: 100%;
+      max-width: 620px;
+      max-height: 85dvh;
+      overflow-y: auto;
+      margin: auto;
+      text-align: center;
+      display: none;
     }
     .result-card.visible {
       opacity: 1;
       transform: scale(1) translateY(0);
       pointer-events: auto;
+      display: block;
     }
-    /* Ghost / Transparent Mode when user taps space */
     .result-card.ghost-mode {
-      opacity: 0.12 !important;
+      opacity: 0.10 !important;
       pointer-events: none !important;
       transform: scale(0.96) !important;
     }
     .ghost-hint {
-      position: absolute;
-      top: -36px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 11px;
+      font-size: 10px;
       color: #38bdf8;
       font-family: monospace;
       letter-spacing: 1px;
-      background: rgba(10, 15, 30, 0.8);
-      padding: 4px 14px;
+      background: rgba(10, 15, 30, 0.85);
+      padding: 4px 12px;
       border-radius: 20px;
       border: 1px solid rgba(56, 189, 248, 0.3);
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.4s;
-    }
-    .result-card.visible .ghost-hint {
-      opacity: 1;
-    }
-    .result-card.ghost-mode .ghost-hint {
-      opacity: 0;
+      display: inline-block;
+      margin-bottom: 12px;
     }
 
     .result-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
       letter-spacing: 2px;
       color: #ffffff;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.12);
       padding-bottom: 8px;
       display: flex;
@@ -281,14 +311,14 @@
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 10px;
+      margin-bottom: 14px;
       text-align: left;
     }
     .stat-item {
       background: rgba(255, 255, 255, 0.04);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 9px 12px;
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .stat-item.full {
@@ -297,7 +327,7 @@
       border-color: rgba(245, 158, 11, 0.35);
     }
     .stat-label-group {
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .stat-jp {
       font-size: 11px;
@@ -306,35 +336,36 @@
       letter-spacing: 0.5px;
     }
     .stat-en {
-      font-size: 9px;
+      font-size: 8.5px;
       color: #94a3b8;
       font-family: monospace;
       letter-spacing: 1px;
     }
     .stat-v {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: bold;
       color: #fff;
       font-family: monospace;
     }
     .stat-v.highlight {
-      font-size: 22px;
+      font-size: 20px;
       color: #f59e0b;
     }
     .poetic-message {
-      font-size: 12px;
+      font-size: 11.5px;
       line-height: 1.7;
       color: #cbd5e1;
-      margin-bottom: 18px;
-      padding: 10px 14px;
+      margin-bottom: 16px;
+      padding: 9px 12px;
       background: rgba(0, 0, 0, 0.35);
       border-radius: 8px;
       border-left: 2px solid #38bdf8;
+      text-align: left;
     }
     .btn-group {
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
     .action-btn {
@@ -342,8 +373,8 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #fff;
       border-radius: 6px;
-      padding: 8px 16px;
-      font-size: 12px;
+      padding: 8px 14px;
+      font-size: 11.5px;
       cursor: pointer;
       font-family: monospace;
       transition: all 0.2s;
@@ -358,24 +389,18 @@
       border-color: rgba(56, 189, 248, 0.4);
       color: #38bdf8;
     }
-    .toggle-view-btn:hover {
-      background: rgba(56, 189, 248, 0.3);
-      border-color: #38bdf8;
-      color: #fff;
-    }
 
-    /* Floating cosmos view return toast */
     #cosmosToast {
       position: absolute;
-      bottom: 24px;
+      bottom: max(24px, env(safe-area-inset-bottom));
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(10, 15, 30, 0.9);
+      background: rgba(10, 15, 30, 0.92);
       border: 1px solid #38bdf8;
       color: #38bdf8;
-      padding: 8px 20px;
+      padding: 7px 18px;
       border-radius: 30px;
-      font-size: 12px;
+      font-size: 11.5px;
       font-family: monospace;
       letter-spacing: 1px;
       z-index: 50;
@@ -384,20 +409,15 @@
       transition: opacity 0.3s;
       cursor: pointer;
       box-shadow: 0 4px 20px rgba(56, 189, 248, 0.3);
+      white-space: nowrap;
     }
     #cosmosToast.visible {
       opacity: 1;
       pointer-events: auto;
     }
 
-    /* Mobile Responsive */
-    @media (max-width: 640px) {
-      .ui-layer {
-        padding: 14px 16px;
-      }
-      .hud-header .title {
-        font-size: 12px;
-      }
+    /* Mobile Responsive optimizations */
+    @media (max-width: 580px) {
       .stats-grid {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -405,17 +425,17 @@
       .stat-item.full {
         grid-column: span 1;
       }
-      .stat-v.highlight {
-        font-size: 18px;
-      }
-      .odo-value {
-        font-size: 18px;
-      }
       .setup-title {
-        font-size: 20px;
+        font-size: 22px;
       }
       .setup-card {
-        padding: 24px 18px;
+        padding: 22px 16px;
+      }
+      .result-card {
+        padding: 18px 14px;
+      }
+      .hud-header .title {
+        font-size: 12px;
       }
     }
   </style>
@@ -429,8 +449,8 @@
   <div class="ui-layer">
     <div class="hud-header">
       <div>
-        <span class="title">COSMIC ODOMETER</span>
-        <div style="font-size: 9px; margin-top: 3px;">CMB ABSOLUTE FRAME : v ≈ 370 km/s</div>
+        <div class="title">CosMe</div>
+        <div class="sub-brand">宇宙の中の自分 // COSMIC ODOMETER</div>
       </div>
       <div id="hud-clock" style="text-align: right; font-size: 11px;">
         2026.10.03 // EARTH
@@ -442,7 +462,7 @@
         <div class="odo-label">TOTAL COSMIC VOYAGE (宇宙総航行距離)</div>
         <span class="odo-value" id="odoNumber">0</span>
         <span class="odo-unit">km</span>
-        <div style="font-size: 11px; color: #38bdf8; margin-top: 3px;" id="odoAU">0.00 AU</div>
+        <div style="font-size: 11px; color: #38bdf8; margin-top: 2px;" id="odoAU">0.00 AU</div>
       </div>
 
       <div style="font-size: 10px; color: #64748b; font-family: monospace; text-align: right;">
@@ -454,7 +474,8 @@
   <div class="center-overlay">
     <!-- Initial Setup Card -->
     <div class="setup-card" id="setupCard">
-      <div class="setup-title">宇宙走行距離計</div>
+      <div class="setup-title">Cos<span>Me</span></div>
+      <div class="setup-concept">── 宇宙の中の自分 ──</div>
       <p class="setup-subtitle">
         あなたが地球に降り立ってから今日まで、<br>
         地球と太陽系はどれだけの深宇宙を切り裂いてきたか。<br>
@@ -508,7 +529,7 @@
             <div class="stat-en">TOTAL COSMIC VOYAGE</div>
           </div>
           <div class="stat-v highlight" id="resDist">599,032,590,000 km</div>
-          <div style="font-size: 12px; color: #38bdf8; margin-top: 3px;" id="resAU">4,004.3 AU (0.0633 光年)</div>
+          <div style="font-size: 11.5px; color: #38bdf8; margin-top: 2px;" id="resAU">4,004.3 AU (0.0633 光年)</div>
         </div>
 
         <!-- 4. 心臓の鼓動 -->
@@ -635,16 +656,19 @@
     // --- Canvas & Visual Pipeline ---
     const canvas = document.getElementById('universe');
     const ctx = canvas.getContext('2d');
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let width = 0;
+    let height = 0;
 
-    window.addEventListener('resize', () => {
+    function resizeCanvas() {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
-    });
+    }
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+    resizeCanvas();
 
     // Background Stars
-    const numStars = 400;
+    const numStars = 350;
     const stars = [];
     for (let i = 0; i < numStars; i++) {
       stars.push({
@@ -657,18 +681,18 @@
 
     // Solar system planets definition
     const planets = [
-      { name: '太陽', en: 'SUN', xNorm: 0.05, color: '#f59e0b', r: 12, passed: false },
+      { name: '太陽', en: 'SUN', xNorm: 0.05, color: '#f59e0b', r: 10, passed: false },
       { name: '水', en: 'MERCURY', xNorm: 0.10, color: '#94a3b8', r: 3, passed: false },
       { name: '金', en: 'VENUS', xNorm: 0.13, color: '#fde047', r: 4, passed: false },
       { name: '地球', en: 'EARTH', xNorm: 0.17, color: '#38bdf8', r: 5, passed: false, isStart: true },
       { name: '火', en: 'MARS', xNorm: 0.21, color: '#ef4444', r: 4, passed: false },
-      { name: '木', en: 'JUPITER', xNorm: 0.28, color: '#fb923c', r: 9, passed: false },
-      { name: '土', en: 'SATURN', xNorm: 0.36, color: '#fef08a', r: 7, ring: true, passed: false },
-      { name: '天', en: 'URANUS', xNorm: 0.44, color: '#67e8f9', r: 5, passed: false },
-      { name: '海', en: 'NEPTUNE', xNorm: 0.51, color: '#3b82f6', r: 5, passed: false },
+      { name: '木', en: 'JUPITER', xNorm: 0.28, color: '#fb923c', r: 8, passed: false },
+      { name: '土', en: 'SATURN', xNorm: 0.36, color: '#fef08a', r: 6.5, ring: true, passed: false },
+      { name: '天', en: 'URANUS', xNorm: 0.44, color: '#67e8f9', r: 4.5, passed: false },
+      { name: '海', en: 'NEPTUNE', xNorm: 0.51, color: '#3b82f6', r: 4.5, passed: false },
       { name: '冥', en: 'PLUTO', xNorm: 0.57, color: '#cbd5e1', r: 2.5, passed: false },
-      { name: 'ボイジャー境界', en: 'HELIOPAUSE (120 AU)', xNorm: 0.67, color: '#a855f7', isMarker: true, passed: false },
-      { name: 'オールトの雲', en: 'OORT CLOUD (4,000 AU)', xNorm: 0.90, color: '#38bdf8', isOort: true, passed: false }
+      { name: 'ボイジャー境界', en: '120 AU', xNorm: 0.67, color: '#a855f7', isMarker: true, passed: false },
+      { name: 'オールトの雲', en: '4,000 AU', xNorm: 0.90, color: '#38bdf8', isOort: true, passed: false }
     ];
 
     let state = 'IDLE';
@@ -700,9 +724,8 @@
       const totalKm = seconds * 370;
       const au = totalKm / 149597870.7;
       const ly = totalKm / 9.4607304725808e12;
-      // Fixed heartbeats calculation: approx 70 bpm
       const totalBeats = seconds * (70 / 60);
-      const beatsIn100M = (totalBeats / 100000000).toFixed(1); // e.g. 18.9 億回
+      const beatsIn100M = (totalBeats / 100000000).toFixed(1);
 
       return {
         days,
@@ -768,14 +791,13 @@
 
     copyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const text = `【COSMIC ODOMETER 航行記録】\n生年月日: ${calcResults.birthStr}\nあなたが地球に降り立ってから（生存日数）: ${calcResults.days.toLocaleString()} 日\nあなたの時間: ${calcResults.hours.toLocaleString()} 時間\n宇宙総航行距離: ${Math.round(calcResults.totalKm).toLocaleString()} km (${calcResults.au.toFixed(1)} AU / ${calcResults.ly.toFixed(4)} 光年)\n心臓の鼓動: 約 ${calcResults.beats} 億回\n次の誕生日まで: あと ${calcResults.daysToNext} 日\n#CosmicOdometer`;
+      const text = `【CosMe - 宇宙の中の自分】\n生年月日: ${calcResults.birthStr}\nあなたが地球に降り立ってから（生存日数）: ${calcResults.days.toLocaleString()} 日\nあなたの時間: ${calcResults.hours.toLocaleString()} 時間\n宇宙総航行距離: ${Math.round(calcResults.totalKm).toLocaleString()} km (${calcResults.au.toFixed(1)} AU / ${calcResults.ly.toFixed(4)} 光年)\n心臓の鼓動: 約 ${calcResults.beats} 億回\n次の誕生日まで: あと ${calcResults.daysToNext} 日\n#CosMe #宇宙の中の自分`;
       navigator.clipboard.writeText(text).then(() => {
         copyBtn.innerText = 'コピー完了！';
         setTimeout(() => copyBtn.innerText = '結果をコピー', 2000);
       });
     });
 
-    // Toggle Ghost Mode (Peek Cosmos)
     function toggleGhostMode() {
       if (state !== 'RESULT') return;
       if (isGhostMode) {
@@ -842,7 +864,7 @@
           sound.playTick(1.0);
         }
         clockAngle += dt * 0.5;
-        drawClock(width / 2, height / 2, 110, clockAngle, 1.0);
+        drawClock(width / 2, height / 2, Math.min(width * 0.22, 110), clockAngle, 1.0);
 
         if (stateTimer > 3.0) {
           state = 'CLOCK_REWIND';
@@ -856,7 +878,7 @@
         if (Math.random() < 0.35) {
           sound.playRewindTick(Math.min(1.0, stateTimer / 3.0));
         }
-        drawClock(width / 2, height / 2, 110, clockAngle, 1.0);
+        drawClock(width / 2, height / 2, Math.min(width * 0.22, 110), clockAngle, 1.0);
 
         if (stateTimer > 3.5) {
           state = 'MORPH_EARTH';
@@ -866,7 +888,7 @@
       }
       else if (state === 'MORPH_EARTH') {
         const morphProgress = Math.min(1.0, stateTimer / 2.5);
-        drawClockToEarthMorph(width / 2, height / 2, 110, morphProgress);
+        drawClockToEarthMorph(width / 2, height / 2, Math.min(width * 0.22, 110), morphProgress);
 
         if (stateTimer > 3.0) {
           state = 'EXPAND_SIDEVIEW';
@@ -947,8 +969,8 @@
 
       for (let i = 0; i < 12; i++) {
         const rad = (i * Math.PI) / 6;
-        const x1 = Math.cos(rad) * (r - 10);
-        const y1 = Math.sin(rad) * (r - 10);
+        const x1 = Math.cos(rad) * (r - 8);
+        const y1 = Math.sin(rad) * (r - 8);
         const x2 = Math.cos(rad) * r;
         const y2 = Math.sin(rad) * r;
         ctx.beginPath();
@@ -1012,8 +1034,7 @@
 
     // --- HORIZONTAL SIDE-VIEW (SOLAR SYSTEM PROFILE) ---
     function drawSolarSystem(expandProgress, beamProg) {
-      // Dynamic track Y: responsive and optimized
-      const trackY = height * 0.58;
+      const trackY = height * 0.62;
       const startX = width * 0.04;
       const endX = width * 0.94;
       const totalWidth = endX - startX;
@@ -1038,13 +1059,13 @@
       const beamCurrentX = earthX + (oortX - earthX) * beamProg;
 
       // 1. Oort Cloud fuzzy cloud area
-      const oortGrad = ctx.createRadialGradient(oortX, trackY, 10, oortX, trackY, 70);
+      const oortGrad = ctx.createRadialGradient(oortX, trackY, 8, oortX, trackY, Math.min(width * 0.15, 60));
       oortGrad.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
       oortGrad.addColorStop(0.6, 'rgba(56, 189, 248, 0.08)');
       oortGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = oortGrad;
       ctx.beginPath();
-      ctx.arc(oortX, trackY, 70, 0, Math.PI * 2);
+      ctx.arc(oortX, trackY, Math.min(width * 0.15, 60), 0, Math.PI * 2);
       ctx.fill();
 
       // 2. Light Beam
@@ -1053,18 +1074,17 @@
         ctx.moveTo(earthX, trackY);
         ctx.lineTo(beamCurrentX, trackY);
         ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3.5;
         ctx.shadowColor = '#f59e0b';
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 16;
         ctx.stroke();
         ctx.shadowBlur = 0;
 
-        // Beam Head glowing bullet
         ctx.beginPath();
-        ctx.arc(beamCurrentX, trackY, 6 + Math.sin(Date.now() * 0.02) * 2, 0, Math.PI * 2);
+        ctx.arc(beamCurrentX, trackY, 5 + Math.sin(Date.now() * 0.02) * 2, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 14;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -1081,39 +1101,39 @@
 
         if (p.isMarker) {
           ctx.beginPath();
-          ctx.setLineDash([4, 4]);
-          ctx.moveTo(px, trackY - 35);
-          ctx.lineTo(px, trackY + 35);
+          ctx.setLineDash([3, 3]);
+          ctx.moveTo(px, trackY - 26);
+          ctx.lineTo(px, trackY + 26);
           ctx.strokeStyle = isPassed ? '#c084fc' : 'rgba(168, 85, 247, 0.35)';
           ctx.lineWidth = 1.5;
           ctx.stroke();
           ctx.setLineDash([]);
 
-          ctx.font = '10px monospace';
+          ctx.font = '9px monospace';
           ctx.fillStyle = isPassed ? '#c084fc' : 'rgba(168, 85, 247, 0.6)';
           ctx.textAlign = 'center';
-          ctx.fillText('HELIOPAUSE (120 AU)', px, trackY - 42);
-          ctx.fillText('太陽風のバリア', px, trackY + 46);
+          ctx.fillText('120 AU', px, trackY - 30);
+          ctx.fillText('太陽風境界', px, trackY + 36);
           return;
         }
 
         if (p.isOort) {
-          ctx.font = '11px monospace';
+          ctx.font = '9px monospace';
           ctx.fillStyle = isPassed ? '#38bdf8' : 'rgba(56, 189, 248, 0.5)';
           ctx.textAlign = 'center';
-          ctx.fillText('OORT CLOUD (4,000 AU)', px, trackY - 32);
-          ctx.fillText('オールトの雲', px, trackY - 18);
+          ctx.fillText('4,000 AU', px, trackY - 24);
+          ctx.fillText('オールトの雲', px, trackY - 12);
 
           if (isPassed) {
             ctx.beginPath();
-            ctx.arc(px, trackY, 8 + Math.sin(Date.now() * 0.005) * 3, 0, Math.PI * 2);
+            ctx.arc(px, trackY, 7 + Math.sin(Date.now() * 0.005) * 3, 0, Math.PI * 2);
             ctx.strokeStyle = '#38bdf8';
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = '#f59e0b';
-            ctx.font = 'bold 12px monospace';
-            ctx.fillText('★ YOU ARE HERE (現在地)', px, trackY + 32);
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText('★ YOU ARE HERE', px, trackY + 26);
           }
           return;
         }
@@ -1123,29 +1143,23 @@
         ctx.fillStyle = isPassed ? '#ffffff' : p.color;
         if (isPassed) {
           ctx.shadowColor = p.color;
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 8;
         }
         ctx.fill();
         ctx.shadowBlur = 0;
 
         if (p.ring) {
           ctx.beginPath();
-          ctx.ellipse(px, trackY, p.r * 1.9, p.r * 0.5, Math.PI / 6, 0, Math.PI * 2);
+          ctx.ellipse(px, trackY, p.r * 1.8, p.r * 0.5, Math.PI / 6, 0, Math.PI * 2);
           ctx.strokeStyle = isPassed ? '#ffffff' : 'rgba(254, 240, 138, 0.7)';
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 1.2;
           ctx.stroke();
         }
 
-        // Japanese Kanji Label
-        ctx.font = (p.isStart ? 'bold 13px ' : '11px ') + 'sans-serif';
-        ctx.fillStyle = isPassed ? '#f59e0b' : (p.isStart ? '#38bdf8' : 'rgba(255, 255, 255, 0.7)');
+        ctx.font = (p.isStart ? 'bold 11px ' : '10px ') + 'sans-serif';
+        ctx.fillStyle = isPassed ? '#f59e0b' : (p.isStart ? '#38bdf8' : 'rgba(255, 255, 255, 0.75)');
         ctx.textAlign = 'center';
-        ctx.fillText(p.name, px, trackY - (p.r + 10));
-
-        // English name below
-        ctx.font = '9px monospace';
-        ctx.fillStyle = isPassed ? '#e2e8f0' : 'rgba(255, 255, 255, 0.4)';
-        ctx.fillText(p.en, px, trackY + (p.r + 14));
+        ctx.fillText(p.name, px, trackY - (p.r + 7));
       });
 
       ctx.restore();
